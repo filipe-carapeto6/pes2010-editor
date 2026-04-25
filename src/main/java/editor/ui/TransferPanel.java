@@ -138,10 +138,13 @@ public class TransferPanel extends JPanel
 		JPanel rPanel = new JPanel(new BorderLayout());
 		rPanel.add(selectorR, BorderLayout.CENTER);
 
-		JPanel listPane = new JPanel(new GridLayout(0, 3));
+		JPanel listPane = new JPanel(new GridLayout(1, 3));
 		listPane.add(freeList);
 		listPane.add(lPanel);
 		listPane.add(rPanel);
+
+		add(listPane, BorderLayout.CENTER);
+		add(editOptInfoPan, BorderLayout.SOUTH);
 
 		add(listPane);
 		add(editOptInfoPan);

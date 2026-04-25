@@ -35,7 +35,7 @@ public class SquadNumberList extends JList/*<String>*/ {
 		setVisibleRowCount(1);
 		//setFont(new Font(UIUtil.DIALOG, Font.BOLD, 12));
 
-		setPreferredSize(new Dimension(18, 576));//16
+		//setPreferredSize(new Dimension(18, 576));//16
 	}
 
 	/**

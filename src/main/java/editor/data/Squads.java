@@ -22,14 +22,13 @@ public final class Squads {
 
 	public static final int NATION_NUM_ADR = OptionFile.blockAddress(5);
 	private static final int FIRST_CLUB_SLOT = (NATION_COUNT + CLASSIC_COUNT) * Formations.NATION_TEAM_SIZE
-			+ Player.TOTAL_EDIT;// 7*23 + 32
+			+ Player.TOTAL_EDIT;
 	public static final int CLUB_COUNT = Clubs.TOTAL + 2;
 	public static final int EXTRA_CLUBS_COUNT = 2;
 	private static final int TOTAL_SLOTS = FIRST_CLUB_SLOT + CLUB_COUNT * Formations.CLUB_TEAM_SIZE
 			+ Player.TOTAL_SHOP
 			+ EXTRA_CLUBS_COUNT * Formations.CLUB_TEAM_SIZE;
 	public static final int NATION_ADR = NATION_NUM_ADR + TOTAL_SLOTS + 1;
-
 	public static final int CLUB_NUM_ADR = NATION_NUM_ADR + FIRST_CLUB_SLOT;
 	public static final int CLUB_ADR = NATION_ADR + FIRST_CLUB_SLOT * 2;
 	public static final int END_ADR = NATION_ADR + TOTAL_SLOTS * 2;
@@ -356,6 +355,15 @@ public final class Squads {
 	}
 
 	public static void fixAll(OptionFile of) {
+		// ADD THESE:
+		log.debug("NATION_NUM_ADR: {}", NATION_NUM_ADR);
+		log.debug("FIRST_CLUB_SLOT: {}", FIRST_CLUB_SLOT);
+		log.debug("CLUB_NUM_ADR: {}", CLUB_NUM_ADR);
+		log.debug("NATION_ADR: {}", NATION_ADR);
+		log.debug("CLUB_ADR: {}", CLUB_ADR);
+		log.debug("FIRST_CLUB: {}", FIRST_CLUB);
+		log.debug("Clubs.TOTAL: {}", Clubs.TOTAL);
+
 		if (null == of) {
 			throw new NullArgumentException("of");
 		}

@@ -124,8 +124,10 @@ public class Editor extends JFrame implements ActionListener {
 		setResizable(true);
 		getContentPane().add(tabbedPane);
 
-		setResizable(false);
+		setResizable(true);
+		setMinimumSize(new java.awt.Dimension(1280, 800));
 		pack();
+		setExtendedState(JFrame.MAXIMIZED_BOTH);
 
 		tabbedPane.setVisible(false);
 	}
@@ -311,6 +313,7 @@ public class Editor extends JFrame implements ActionListener {
 		log.debug("Try to open file: {}", fs);
 
 		if (fs.isFile() && of.load(fs)) {
+			of.saveData(new java.io.File("D:\\AA\\decrypted.bin")); // ADD THIS
 			currentFile = fs;
 			refreshTitle(currentFile.getName());
 

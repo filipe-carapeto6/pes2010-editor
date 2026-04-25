@@ -38,7 +38,7 @@ public class SquadList extends JList/*<Player>*/ {
 		//setFont(new Font(UIUtil.DIALOG, Font.BOLD, 12));
 
 		if (setSize) {
-			setPreferredSize(new Dimension(118, 576));
+			//setPreferredSize(new Dimension(118, 576));
 		}
 	}
 

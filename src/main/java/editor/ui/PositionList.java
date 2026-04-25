@@ -40,7 +40,7 @@ public class PositionList extends JList/*<String>*/ {
 		setLayoutOrientation(JList.VERTICAL);
 		setVisibleRowCount(posNum.length);
 		setBackground(UIUtil.LIGHT_YELLOW);
-		setPreferredSize(new Dimension(32, 576));//30
+		//setPreferredSize(new Dimension(32, 576));//30
 		//setFont(new Font(UIUtil.DIALOG, Font.BOLD, 12));
 	}
 

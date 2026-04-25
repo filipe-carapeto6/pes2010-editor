@@ -19,10 +19,10 @@ public class OptionFile implements Serializable {
 	private static final String SHARK_PORT = "\15\0\0\0SharkPortSave";
 	private static final String MAGIC_MAX = "Ps2PowerSave";
 
-	private static final String GAME_ID = "(?i:(BESLES|BASLUS)-.*2014OPT|.*3014OPT)";
+	private static final String GAME_ID = "(?i:(BESLES|BASLUS)-.*2014OPT|.*3014OPT|.*2010OPT|.*2009OPT)";
 	public static final int GAME_LEN = 19;
 
-	public static final int LENGTH = 1086464;
+	public static final int LENGTH = 1111040;
 
 	//region Properties
 
@@ -102,6 +102,11 @@ public class OptionFile implements Serializable {
 				loadEmsFile(in);
 			} else if (Files.isARMaxFile(extension)) {
 				loadARMaxFile(in);
+			} else if (extension == null || extension.isEmpty()) {
+				format = OfFormat.ems;
+				gameId = file.getName();
+				headerData = new byte[0]; // ADD THIS
+				in.seek(0);
 			}
 
 			if (null != format) {
@@ -113,6 +118,21 @@ public class OptionFile implements Serializable {
 					int len = in.read(data);
 					assert len == LENGTH : "Cannot read " + LENGTH + " bytes of data, actual: " + len;
 				}
+				for (int[] block : BLOCKS) {
+					if (block[0] == 765644) {
+						for (int size = 165336; size >= 165000; size -= 4) {
+							int testChk = 0;
+							for (int ofs = block[0]; ofs <= block[0] + size - 4; ofs += 4) {
+								testChk = Bits.toInt(Bits.toInt64(testChk) + Bits.toInt(data, ofs));
+							}
+							if (testChk == 0xEC5BCC8D) {
+								log.debug("Found correct size for block 7: {}", size);
+								break;
+							}
+						}
+					}
+				}
+
 
 				checksum(data, true);
 				decrypt(data);
@@ -256,6 +276,14 @@ public class OptionFile implements Serializable {
 
 		format = OfFormat.xPort;
 	}
+
+//	private void loadRawFile(RandomAccessFile in) throws IOException {
+//		// Raw PS2 save file - game ID is the filename, data starts at offset 0
+//		format = OfFormat.ems; // reuse EMS format as closest equivalent
+//		gameId = filename != null ? filename : file.getName();
+//		in.seek(0);
+//		log.info("Loaded raw PS2 save file");
+//	}
 
 	//endregion
 
@@ -486,17 +514,17 @@ public class OptionFile implements Serializable {
 	//region Encryption / Decryption Methods
 
 	private static final int[][] BLOCKS = {
-			{12, 4852},
-			{5144, 2296},    // Shop + WEN
-			{7608, 4224},    // Stadiums + Leagues
-			{11844, 22816},  // Editable Players
-			{34672, 605120}, // Players + Boots
-			{640632, 90227}, // Teams + Formations
-			{730872, 11440}, // Clubs
-			{742324, 163432},// Kits + Logos
-			{905768, 155624},// Emblems
-			{1061404, 2596},
-			{1065212, 20456}
+			{12,      4852},
+			{5144,    2192},   // +4 from marker
+			{7492,    4760},
+			{12276,   22816},
+			{35104, 623720},
+			{659664, 93811},
+			{753488, 12144},
+			{765644, 165336},
+			{930992, 155624},
+			{1086628, 2588},    // block 9
+			{1089228, 21124}    // block 10
 	};
 
 	private static final int[] KEYS = /*446*/{
@@ -604,6 +632,34 @@ public class OptionFile implements Serializable {
 				continue;
 			}
 
+			// ADD THIS:
+			if (block[0] == 765644) {
+				int crcAtThisPoint = Bits.toInt(data, block[0] - 8);
+				log.debug("Block 7 crc at checksum time: 0x{}", Integer.toHexString(crcAtThisPoint));
+				for (int size = 165336; size >= 165000; size -= 4) {
+					int testChk = 0;
+					for (int ofs = block[0]; ofs <= block[0] + size - 4; ofs += 4) {
+						testChk = Bits.toInt(Bits.toInt64(testChk) + Bits.toInt(data, ofs));
+					}
+					if (testChk == 0xEC5BCC8D) {
+						log.debug("Found correct size for block 7: {}", size);
+						break;
+					}
+				}
+			}
+			if (block[0] == 930992) {
+				for (int size = 4; size <= 200000; size += 4) {
+					int testChk = 0;
+					for (int ofs = block[0]; ofs <= block[0] + size - 4; ofs += 4) {
+						testChk = Bits.toInt(Bits.toInt64(testChk) + Bits.toInt(data, ofs));
+					}
+					if (testChk == 0x3634F5C5) {
+						log.debug("Found correct size for block 8: {}", size);
+						break;
+					}
+				}
+			}
+
 			// calculates simple checksum for each blocks
 			chk = 0;
 			for (int ofs = block[0], endOfs = block[0] + block[1] - 4; ofs <= endOfs; ofs += 4) {
@@ -613,8 +669,10 @@ public class OptionFile implements Serializable {
 			// 4 bytes checksum before each blocks
 			if (validate) {
 				int crc = Bits.toInt(data, adr);
+				log.debug("Block@{} adr={} crc=0x{} chk=0x{}", block[0], adr, Integer.toHexString(crc), Integer.toHexString(chk));
 				if (crc != 0 && crc != chk) {
 					throw new IllegalStateException(String.format("Invalid block@%d checksum 0x%X, expected: 0x%X", block[0], crc, chk));
+//					log.warn("Invalid block@{} checksum 0x{}, expected: 0x{}", block[0], Integer.toHexString(crc), Integer.toHexString(chk));
 				}
 			} else {
 				Bits.toBytes(chk, data, adr);

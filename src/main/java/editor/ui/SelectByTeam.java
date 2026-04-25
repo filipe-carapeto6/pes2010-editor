@@ -60,7 +60,7 @@ public class SelectByTeam extends JPanel implements ActionListener {
 		}
 
 		if (isNormal) {
-			setPreferredSize(new Dimension(164, 601));
+			//setPreferredSize(new Dimension(164, 601));
 		}
 	}
 

@@ -40,6 +40,11 @@ public class OptionFileFilter extends FileFilter {
 			identCheck = readIdentFromARMax(file);
 		}
 
+		if (identCheck == null && (extension == null || extension.isEmpty())) {
+			identCheck = file.getName();
+			log.debug("Using filename as identity for raw OF: {}", identCheck);
+		}
+
 		return OptionFile.isValidGameId(identCheck);
 	}
 
@@ -55,6 +60,7 @@ public class OptionFileFilter extends FileFilter {
 			rf.seek(64);
 			byte[] identBytes = new byte[OptionFile.GAME_LEN];
 			int len = rf.read(identBytes);
+			if (len <= 0) return null;
 
 			String identCheck = new String(identBytes, 0, len, Strings.ANSI);
 			// DEBUG
@@ -86,6 +92,7 @@ public class OptionFileFilter extends FileFilter {
 
 						byte[] identBytes = new byte[OptionFile.GAME_LEN];
 						int len = rf.read(identBytes);
+						if (len <= 0) return null;
 
 						String identCheck = new String(identBytes, 0, len, Strings.ANSI);
 						// DEBUG
@@ -110,6 +117,7 @@ public class OptionFileFilter extends FileFilter {
 			rf.seek(16);
 			byte[] identBytes = new byte[OptionFile.GAME_LEN];
 			int len = rf.read(identBytes);
+			if (len <= 0) return null;
 			String identCheck = new String(identBytes, 0, len, Strings.ANSI);
 
 			// DEBUG
@@ -124,4 +132,22 @@ public class OptionFileFilter extends FileFilter {
 		return null;
 	}
 
+	private static String readIdentFromRaw(File f) {
+		RandomAccessFile rf = null;
+		try {
+			rf = new RandomAccessFile(f, "r");
+			rf.seek(0);
+			byte[] identBytes = new byte[OptionFile.GAME_LEN];
+			int len = rf.read(identBytes);
+			if (len <= 0) return null;
+			String identCheck = new String(identBytes, 0, len, Strings.ANSI);
+			log.debug("Retrieved identity {} from raw OF: {}", identCheck, f.getName());
+			return identCheck;
+		} catch (IOException e) {
+			log.warn("{} is not a raw PS2 save file: {}", f, e);
+		} finally {
+			Files.closeStream(rf);
+		}
+		return null;
+	}
 }

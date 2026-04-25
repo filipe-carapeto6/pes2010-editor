@@ -16,7 +16,7 @@ public final class Clubs {
 	private Clubs() {
 	}
 
-	public static final int TOTAL = 130;
+	public static final int TOTAL = 138;
 	public static final int START_ADR = OptionFile.blockAddress(6);
 
 	/**

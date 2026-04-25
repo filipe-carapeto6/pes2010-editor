@@ -59,7 +59,7 @@ public class SelectByNation extends JPanel implements ActionListener {
 		add(scroll, BorderLayout.CENTER);
 		add(sortButton, BorderLayout.SOUTH);
 
-		setPreferredSize(new Dimension(164, 601));
+		//setPreferredSize(new Dimension(164, 601));
 	}
 
 	public static String[] getExtraNations() {
