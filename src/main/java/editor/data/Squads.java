@@ -26,11 +26,12 @@ public final class Squads {
 	public static final int CLUB_COUNT = Clubs.TOTAL + 2;
 	public static final int EXTRA_CLUBS_COUNT = 2;
 	private static final int TOTAL_SLOTS = FIRST_CLUB_SLOT + CLUB_COUNT * Formations.CLUB_TEAM_SIZE
-			+ Player.TOTAL_SHOP
 			+ EXTRA_CLUBS_COUNT * Formations.CLUB_TEAM_SIZE;
-	public static final int NATION_ADR = NATION_NUM_ADR + TOTAL_SLOTS + 1;
+	//	public static final int NATION_ADR = NATION_NUM_ADR + TOTAL_SLOTS + 1;
 	public static final int CLUB_NUM_ADR = NATION_NUM_ADR + FIRST_CLUB_SLOT;
-	public static final int CLUB_ADR = NATION_ADR + FIRST_CLUB_SLOT * 2;
+	//	public static final int CLUB_ADR = NATION_ADR + FIRST_CLUB_SLOT * 2;
+	public static final int NATION_ADR = 665038;
+	public static final int CLUB_ADR = 669544;
 	public static final int END_ADR = NATION_ADR + TOTAL_SLOTS * 2;
 
 	public static final int EDIT_TEAM_COUNT
@@ -94,14 +95,22 @@ public final class Squads {
 		if (team < EDIT_CLUB) {
 			return NATION_ADR + team * Formations.NATION_TEAM_SIZE * 2;
 		}
-		return CLUB_ADR + (team - FIRST_CLUB) * Formations.CLUB_TEAM_SIZE * 2;
+		int result = CLUB_ADR + (team - FIRST_CLUB) * Formations.CLUB_TEAM_SIZE * 2;
+		if (team == FIRST_CLUB) {
+			log.debug("getOffset for NORTH LONDON (team {}): {}", team, result);
+		}
+		return result;
 	}
 
 	public static int getNumOffset(int team) {
 		if (team < EDIT_CLUB) {
 			return NATION_NUM_ADR + team * Formations.NATION_TEAM_SIZE;
 		}
-		return CLUB_NUM_ADR + (team - FIRST_CLUB) * Formations.CLUB_TEAM_SIZE;
+		int result = CLUB_NUM_ADR + (team - FIRST_CLUB) * Formations.CLUB_TEAM_SIZE;
+		if (team == FIRST_CLUB) {
+			log.debug("getNumOffset for NORTH LONDON (team {}): {}", team, result);
+		}
+		return result;
 	}
 
 	public static int getNumberAdr(int slotAdr) {
@@ -313,6 +322,16 @@ public final class Squads {
 		int formationTeam = squad;
 		if (squad >= FIRST_CLUB) {
 			formationTeam -= EDIT_TEAM_COUNT;
+		}
+
+		// ADD THIS:
+		if (squad == 75) {
+			log.debug("fixFormation squad={}, formationTeam={}, squadOffset={}, formationOffset={}",
+					squad, formationTeam, getOffset(squad), Formations.getOffset(formationTeam));
+			for (int i = 0; i < Formations.CLUB_TEAM_SIZE; i++) {
+				log.debug("  slot {}: player={}, formSlot={}",
+						i, getTeamPlayer(of, squad, i), Formations.getSlot(of, formationTeam, i));
+			}
 		}
 
 		int size = getTeamSize(squad);
