@@ -116,7 +116,8 @@ public class SelectByTeam extends JPanel implements ActionListener {
 		String[] squads = new String[len];
 
 		int ofs = 0;
-		System.arraycopy(Stats.NATION, 0, squads, ofs, Squads.NATION_COUNT);
+//		System.arraycopy(Stats.NATION, 0, squads, ofs, Squads.NATION_COUNT);
+		System.arraycopy(Squads.NATIONAL_TEAMS, 0, squads, ofs, Squads.NATION_COUNT);
 		ofs += Squads.NATION_COUNT;
 		System.arraycopy(Squads.EXTRAS, 0, squads, ofs, Squads.EXTRA_COUNT);
 		ofs += Squads.EXTRA_COUNT;

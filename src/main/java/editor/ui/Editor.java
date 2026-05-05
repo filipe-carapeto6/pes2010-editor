@@ -1,5 +1,6 @@
 package editor.ui;
 
+import editor.data.CsvImporter;
 import editor.data.CsvMaker;
 import editor.data.OfFormat;
 import editor.data.OptionFile;
@@ -27,6 +28,7 @@ public class Editor extends JFrame implements ActionListener {
 	private final OptionFile of;
 	private final OptionFile of2;
 	private final CsvMaker csvMaker;
+	private CsvImporter csvImporter = new CsvImporter();
 
 	public Editor() {
 		super();
@@ -138,6 +140,7 @@ public class Editor extends JFrame implements ActionListener {
 	private JMenuItem csvItem;
 	private JMenuItem convertItem;
 	private JMenuItem relinkItem;
+	private JMenuItem importCsvItem;
 
 	private void buildMenu() {
 		log.debug("Building menu-bar is starting..");
@@ -173,6 +176,10 @@ public class Editor extends JFrame implements ActionListener {
 		csvItem.setActionCommand("MakeCsv");
 		csvItem.addActionListener(this);
 
+		importCsvItem = new JMenuItem(Resources.getMessage("menu.importCsv"));
+		importCsvItem.setActionCommand("ImportCsv");
+		importCsvItem.addActionListener(this);
+
 		convertItem = new JMenuItem(Resources.getMessage("menu.convert"));
 		convertItem.setActionCommand("Convert");
 		convertItem.addActionListener(this);
@@ -183,6 +190,7 @@ public class Editor extends JFrame implements ActionListener {
 
 		JMenu tool = new JMenu(Resources.getMessage("menu.tool"));
 		tool.add(csvItem);
+		tool.add(importCsvItem);
 		tool.add(convertItem);
 		tool.add(relinkItem);
 
@@ -274,6 +282,8 @@ public class Editor extends JFrame implements ActionListener {
 			saveFileAs();
 		} else if ("MakeCsv".equalsIgnoreCase(evt.getActionCommand())) {
 			exportCsv();
+		} else if ("ImportCsv".equalsIgnoreCase(evt.getActionCommand())) {
+			importCsv();
 		} else if ("Convert".equalsIgnoreCase(evt.getActionCommand())) {
 			importFromOF2();
 		} else if ("Relink".equalsIgnoreCase(evt.getActionCommand())) {
@@ -433,6 +443,30 @@ public class Editor extends JFrame implements ActionListener {
 
 		if (csvMaker.makeFile(of, dest, head/*, extra*/, create)) {
 			showSaveOkMsg(dest);
+		} else {
+			showSaveFailMsg();
+		}
+	}
+
+	private void importCsv() {
+		if (null == currentFile) {
+			return;
+		}
+
+		int returnVal = csvChooser.showOpenDialog(getContentPane());
+		if (returnVal != JFileChooser.APPROVE_OPTION) {
+			return;
+		}
+
+		File src = csvChooser.getSelectedFile();
+		if (!Files.isFilenameLegal(src.getName())) {
+			showIllegalNameMsg();
+			return;
+		}
+		log.debug("Try to import from CSV file: {}", src);
+
+		if (csvImporter.importFile(of, src)) {
+			showSaveOkMsg(src);
 		} else {
 			showSaveFailMsg();
 		}

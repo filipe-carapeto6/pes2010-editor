@@ -675,7 +675,10 @@ public class OptionFile implements Serializable {
 //					log.warn("Invalid block@{} checksum 0x{}, expected: 0x{}", block[0], Integer.toHexString(crc), Integer.toHexString(chk));
 				}
 			} else {
-				Bits.toBytes(chk, data, adr);
+				int existingCrc = Bits.toInt(data, adr);
+				if (existingCrc != 0) {
+					Bits.toBytes(chk, data, adr);
+				}
 			}
 		}
 	}

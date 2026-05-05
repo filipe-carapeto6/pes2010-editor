@@ -135,16 +135,26 @@ public class TeamPanel extends JPanel implements ActionListener, ListSelectionLi
 		nameField.setToolTipText(Resources.getMessage("teamPane.nameTip"));
 		nameField.addActionListener(this);
 
+		JButton saveNameBtn = new JButton(Resources.getMessage("Accept"));
+		saveNameBtn.setActionCommand("SaveName");
+		saveNameBtn.addActionListener(this);
+
 		abvEditor = new JTextField(Math.round(1.5f * Clubs.ABBR_NAME_LEN));
 		abvEditor.setDocument(new JTextFieldLimit(Clubs.ABBR_NAME_LEN));
 		abvEditor.setToolTipText(Resources.getMessage("teamPane.abbrTip"));
 		abvEditor.addActionListener(this);
 
+		JButton saveAbvBtn = new JButton(Resources.getMessage("Accept"));
+		saveAbvBtn.setActionCommand("SaveAbv");
+		saveAbvBtn.addActionListener(this);
+
 		JPanel namePan = new JPanel();
 		namePan.add(nameField);
+		namePan.add(saveNameBtn);
 
 		JPanel abbrNamePan = new JPanel();
 		abbrNamePan.add(abvEditor);
+		abbrNamePan.add(saveAbvBtn);
 
 		JPanel colorBtnPan = new JPanel(new GridLayout(0, 1));
 		colorBtnPan.add(color1Btn);
@@ -211,20 +221,25 @@ public class TeamPanel extends JPanel implements ActionListener, ListSelectionLi
 		if (null == evt) {
 			throw new NullArgumentException("evt");
 		}
-		int team = teamList.getSelectedIndex();
-		if (team < 0) {
+		if (!isOk) {
 			return;
 		}
-		if (log.isInfoEnabled()) {
-			log.info("Perform action: {} for team: {}, on: {}",
-					evt.getActionCommand(), team, Strings.valueOf(evt.getSource()));
-		}
+		int team = teamList.getSelectedIndex();
+		log.info("Try to perform team changed action: {}", evt.getActionCommand());
 
-		if ("BackFlag".equalsIgnoreCase(evt.getActionCommand())) {
-			selectBackFlag(team);
-		} else if ("Color1".equalsIgnoreCase(evt.getActionCommand())) {
+		if (evt.getSource() == nameField || "SaveName".equals(evt.getActionCommand())) {
+			if (team < Squads.CLUB_COUNT) {
+				clubNameChanged(team, nameField);
+			}
+
+		} else if (evt.getSource() == abvEditor || "SaveAbv".equals(evt.getActionCommand())) {
+			if (team < Squads.CLUB_COUNT) {
+				clubNameChanged(team, abvEditor);
+			}
+
+		} else if (evt.getSource() == color1Btn) {
 			selectBgColor(team, 1);
-		} else if ("Color2".equalsIgnoreCase(evt.getActionCommand())) {
+		} else if (evt.getSource() == color2Btn) {
 			selectBgColor(team, 2);
 		} else if ("CopyColor".equalsIgnoreCase(evt.getActionCommand())) {
 			copyToBackColor2(team);

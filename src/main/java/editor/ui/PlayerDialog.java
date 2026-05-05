@@ -95,6 +95,7 @@ public class PlayerDialog extends JDialog implements ActionListener {
 		if ("Accept".equalsIgnoreCase(evt.getActionCommand())) {
 			if (isFormValid()) {
 				updateStats();
+				accept();
 				setVisible(false);
 			}
 		} else {
@@ -153,6 +154,9 @@ public class PlayerDialog extends JDialog implements ActionListener {
 	}
 
 	private void updateStats() {
+		String newName = generalPan.getNameField().getText();
+		new Player(of, index).setName(newName);
+
 		for (int i = 0; i < Stats.ROLES.length; i++) {
 			Stats.setValue(of, index, Stats.ROLES[i], Bits.toByte(positionPan.getRoleCheck(i).isSelected()));
 		}
@@ -208,6 +212,10 @@ public class PlayerDialog extends JDialog implements ActionListener {
 		Stats.setValue(of, index, Stats.APPEARANCE_EDITED, 1);
 		// DEBUG
 		log.debug("Update succeeded Stats on Player: {}", index);
+	}
+
+	private void accept() {
+		// Nothing else to do here as updateStats already updates the OptionFile.
 	}
 
 }

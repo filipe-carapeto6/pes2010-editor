@@ -2,6 +2,7 @@ package editor.ui;
 
 import editor.data.Hairs;
 import editor.data.OptionFile;
+import editor.data.Player;
 import editor.data.Stat;
 import editor.data.Stats;
 import editor.lang.JTextChangeListener;
@@ -39,6 +40,7 @@ public class GeneralAbilityPanel extends JPanel implements ActionListener, Chang
 	//region Initialize the GUI components
 
 	private/* final*/ JComboBox nationBox;
+	private/* final*/ JTextField nameField;
 	private/* final*/ JTextField ageField;
 	private/* final*/ JTextField heightField;
 	private/* final*/ JTextField weightField;
@@ -60,6 +62,9 @@ public class GeneralAbilityPanel extends JPanel implements ActionListener, Chang
 
 	private void initComponents() {
 		setBorder(BorderFactory.createTitledBorder(Resources.getMessage("genAbility.title")));
+
+		nameField = new JTextField(15);
+		nameField.setDocument(new JTextFieldLimit(Player.NAME_LEN));
 
 		nationBox = new JComboBox/*<String>*/(Stats.NATION);
 
@@ -96,7 +101,15 @@ public class GeneralAbilityPanel extends JPanel implements ActionListener, Chang
 		c.fill = GridBagConstraints.HORIZONTAL;
 
 		// Register TextBox and Label
-		JLabel lab = new JLabel(Resources.getMessage("genAbility.nation"));
+		JLabel lab = new JLabel(Resources.getMessage("genAbility.name"));
+		lab.setLabelFor(nameField);
+		c.gridx = 0;
+		c.gridy++;
+		add(lab, c);
+		c.gridx++;
+		add(nameField, c);
+
+		lab = new JLabel(Resources.getMessage("genAbility.nation"));
 		lab.setLabelFor(nationBox);
 		c.gridx = 0;
 		c.gridy++;
@@ -333,6 +346,10 @@ public class GeneralAbilityPanel extends JPanel implements ActionListener, Chang
 		return faceField;
 	}
 
+	public JTextField getNameField() {
+		return nameField;
+	}
+
 	public JTextField getHairField() {
 		return hairField;
 	}
@@ -342,9 +359,8 @@ public class GeneralAbilityPanel extends JPanel implements ActionListener, Chang
 	}
 
 	public void load(int player) {
-		log.info("Try to load general abilities for player: {}", player);
-
-		nationBox.setSelectedItem(Stats.getString(of, player, Stats.NATIONALITY));
+		nameField.setText(Player.getName(of, player));
+		nationBox.setSelectedIndex(Stats.getValue(of, player, Stats.NATIONALITY));
 		ageField.setText(Stats.getString(of, player, Stats.AGE));
 		heightField.setText(Stats.getString(of, player, Stats.HEIGHT));
 		weightField.setText(Stats.getString(of, player, Stats.WEIGHT));

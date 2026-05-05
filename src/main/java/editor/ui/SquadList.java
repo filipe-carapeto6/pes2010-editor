@@ -104,13 +104,7 @@ public class SquadList extends JList/*<Player>*/ {
 
 		Player[] players = new Player[size];
 		for (int p = 0; p < players.length; p++) {
-			int adr;
-			if (team < Squads.NATION_COUNT + Squads.CLASSIC_COUNT
-					|| (team >= Squads.FIRST_CLUB && team < Squads.FIRST_CLUB + Clubs.TOTAL)) {
-				adr = firstAdr + Formations.getSlot(of, ft, p) * 2;
-			} else {
-				adr = firstAdr + p * 2;
-			}
+			int adr = firstAdr + p * 2;
 
 			int pId = Bits.toInt16(of.getData(), adr);
 			if (Player.isInvalidId(pId)) {

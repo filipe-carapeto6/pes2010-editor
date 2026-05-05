@@ -35,30 +35,66 @@ public class CsvImporter implements Serializable {
 
 		BufferedReader reader = null;
 		try {
-			reader = new BufferedReader(new InputStreamReader(new FileInputStream(source), StandardCharsets.UTF_8));
+			reader = new BufferedReader(new InputStreamReader(new FileInputStream(source), "UTF-8"));
 			String line = reader.readLine();
 
-			// Skip header if it is present
+			// Parse header
+			String[] header = null;
+			int idCol = -1;
 			if (line != null && isHeader(line)) {
+				header = line.split(Pattern.quote(String.valueOf(separator)));
+				for (int i = 0; i < header.length; i++) {
+					if (header[i].replace("\"", "").trim().equalsIgnoreCase("ID")) {
+						idCol = i;
+						break;
+					}
+				}
 				line = reader.readLine();
 			}
 
-			// We will assume that players match lines sequentially from player 1 up to MAX,
-			// or we can adjust logic if player index is encoded.
-			// Current CsvMaker exports in order without an ID column.
-			int playerId = 1;
-			while (line != null && playerId < Player.TOTAL_EDIT + Player.FIRST_EDIT) {
-				if (playerId == Player.FIRST_UNUSED) {
-					// According to CsvMaker, we might skip extra unused players
-					playerId = Player.FIRST_EDIT;
-				}
+			while (line != null) {
+				if (line.trim().length() > 0) {
+					String[] values = line.split(Pattern.quote(String.valueOf(separator)));
+					int playerId = -1;
+					if (idCol >= 0 && values.length > idCol && !Strings.isEmpty(values[idCol])) {
+						try {
+							playerId = Integer.parseInt(values[idCol].replace("\"", "").trim());
+						} catch (NumberFormatException e) {
+							log.warn("Invalid ID value '{}', skipping line: {}", values[idCol], line);
+							line = reader.readLine();
+							continue;
+						}
+					}
 
-				if (!line.trim().isEmpty()) {
-					boolean ok = importPlayer(line, of, playerId);
-					if (ok) {
-						playerId++;
-					} else {
-						log.warn("Failed to parse line for player #{}: {}", playerId, line);
+					int playerIndex = -1;
+					if (playerId >= Player.FIRST_EDIT && playerId < Player.END_EDIT) {
+						playerIndex = playerId;
+					} else if (playerId >= 0) {
+						for (int i = 1; i < Player.TOTAL; i++) {
+							int id = Player.getId(of, i);
+							if (id == playerId) {
+								playerIndex = i;
+								break;
+							}
+						}
+					}
+
+					if (playerIndex < 0) {
+						int nextFreeSlot = Player.FIRST_EDIT;
+						while (nextFreeSlot < Player.FIRST_EDIT + Player.TOTAL_EDIT && new Player(of, nextFreeSlot).isEditedPlayerSlotUsed(nextFreeSlot, of)) {
+							nextFreeSlot++;
+						}
+						if (nextFreeSlot >= Player.FIRST_EDIT + Player.TOTAL_EDIT) {
+							log.warn("No free player slots available, skipping line: {}", line);
+							line = reader.readLine();
+							continue;
+						}
+						playerIndex = nextFreeSlot;
+					}
+
+					boolean ok = importPlayer(line, of, playerIndex, idCol, playerId);
+					if (!ok) {
+						log.warn("Failed to parse line for player #{}: {}", playerIndex, line);
 					}
 				}
 				line = reader.readLine();
@@ -68,105 +104,117 @@ public class CsvImporter implements Serializable {
 			return true;
 		} catch (IOException e) {
 			log.error("Failed to import CSV file:", e);
+			return false;
 		} finally {
 			Files.closeStream(reader);
 		}
-
-		return false;
 	}
 
 	private boolean isHeader(String line) {
-		// Just a heuristic: if first column has letters, it is probably the header
-		// Or we can check if it starts with "Name"
-		return line.startsWith("Name") || line.contains("Age") || line.contains("Height");
+		String upper = line.toUpperCase();
+		return upper.contains("NAME") || upper.contains("AGE") || upper.contains("HEIGHT");
 	}
 
-	private boolean importPlayer(String line, OptionFile of, int player) {
+	private boolean importPlayer(String line, OptionFile of, int player, int idCol, int playerId) {
 		String[] values = line.split(Pattern.quote(String.valueOf(separator)));
-		if (values.length < 50) { // Just a sanity check
-			return false;
-		}
-
 		int col = 0;
+		if (idCol >= 0) col++;
 		try {
+			if (player >= Player.FIRST_EDIT) {
+				Stats.setValue(of, player, Stats.PLAYER_ID, playerId);
+			}
 			// Name
-			String name = values[col++].trim();
-			// We can implement Name setting later, we need to know the string encoding methods
-
+			String newName = values[col++].replace("\"", "").trim();
+			if (!Strings.isEmpty(newName)) {
+				new Player(of, player).setName(newName);
+			}
 			// Age
-			Stats.setValue(of, player, Stats.AGE, parseInt(values[col++]));
+			Stats.setValue(of, player, Stats.AGE, parseInt(values[col++]) - 15);
 			// Height
-			Stats.setValue(of, player, Stats.HEIGHT, parseInt(values[col++]));
+			Stats.setValue(of, player, Stats.HEIGHT, parseInt(values[col++]) - 148);
 			// Weight
 			Stats.setValue(of, player, Stats.WEIGHT, parseInt(values[col++]));
 			// Foot
 			String foot = values[col++];
 			Stats.setValue(of, player, Stats.FOOT, foot.contains("R") ? 0 : 1);
 
-			// Favorite Side
-			String side = values[col++];
-			int sideVal = 0; // default Same Side
-			// Parse side string if needed...
+			// Favoured Side
+			col++;
 
 			// Roles
 			for (Stat s : Stats.ROLES) {
-				Stats.setValue(of, player, s, parseInt(values[col++]));
+				String val = values[col++];
+				if (!Strings.isEmpty(val.trim())) {
+					Stats.setValue(of, player, s, parseInt(val));
+				}
 			}
 
 			// Registered Position
-			String regPosStr = values[col++];
-			// Find the index in ROLES
-			// Stats.setValue(of, player, Stats.REG_POS, posIndex);
+			col++;
 
 			// Other Stats
-			Stats.setValue(of, player, Stats.INJURY, parseChar(values[col++]));
-			Stats.setValue(of, player, Stats.DRIBBLE_STYLE, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.FREE_KICK, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.PK_STYLE, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.DK_STYLE, parseInt(values[col++]));
+			setIfNotBlank(of, player, Stats.INJURY, values[col++], true);
+			setIfNotBlank(of, player, Stats.DRIBBLE_STYLE, values[col++], false);
+			setIfNotBlank(of, player, Stats.FREE_KICK, values[col++], false);
+			setIfNotBlank(of, player, Stats.PK_STYLE, values[col++], false);
+			setIfNotBlank(of, player, Stats.DK_STYLE, values[col++], false);
 
-			Stats.setValue(of, player, Stats.GROWTH, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.FACE, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.FACE_TYPE, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.SKIN, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.HEAD_LENGTH, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.HEAD_WIDTH, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.HAIR, parseInt(values[col++]));
+			setIfNotBlank(of, player, Stats.GROWTH, values[col++], false);
+			setIfNotBlank(of, player, Stats.FACE, values[col++], false);
+			setIfNotBlank(of, player, Stats.FACE_TYPE, values[col++], false);
+			setIfNotBlank(of, player, Stats.SKIN, values[col++], false);
+			setIfNotBlank(of, player, Stats.HEAD_LENGTH, values[col++], false);
+			setIfNotBlank(of, player, Stats.HEAD_WIDTH, values[col++], false);
+			setIfNotBlank(of, player, Stats.HAIR, values[col++], false);
 
 			for (Stat s : Stats.ABILITY99) {
-				Stats.setValue(of, player, s, parseInt(values[col++]));
+				String val = values[col++];
+				if (!Strings.isEmpty(val.trim())) {
+					Stats.setValue(of, player, s, parseInt(val));
+				}
 			}
 
-			Stats.setValue(of, player, Stats.CONDITION, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.WEAK_FOOT_ACC, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.WEAK_FOOT_FREQ, parseInt(values[col++]));
-			Stats.setValue(of, player, Stats.CONSISTENCY, parseInt(values[col++]));
+			setIfNotBlank(of, player, Stats.CONDITION, values[col++], false);
+			setIfNotBlank(of, player, Stats.WEAK_FOOT_ACC, values[col++], false);
+			setIfNotBlank(of, player, Stats.WEAK_FOOT_FREQ, values[col++], false);
+			setIfNotBlank(of, player, Stats.CONSISTENCY, values[col++], false);
 
 			for (Stat s : Stats.ABILITY_SPECIAL) {
-				Stats.setValue(of, player, s, parseInt(values[col++]));
+				String val = values[col++];
+				if (!Strings.isEmpty(val.trim())) {
+					Stats.setValue(of, player, s, parseInt(val));
+				}
 			}
 
-			// Nationality string maps to integer?
-			String natStr = values[col++];
-			// Stats.setValue(of, player, Stats.NATIONALITY, ???);
-
-			// The rest (international status, etc) we could skip for now,
-			// it needs more advanced mapping
+			// Skip nationality and any remaining columns
+			// ...
 
 			return true;
 		} catch (NumberFormatException e) {
 			log.warn("Invalid number for player {} at column {}", player, col, e);
+			return false;
+		} catch (Exception e) {
+			log.warn("General error for player {}: {}", player, e.getMessage());
 			return false;
 		}
 	}
 
 	private int parseInt(String val) {
 		if (Strings.isEmpty(val)) return 0;
-		return Integer.parseInt(val.trim());
+		val = val.replace("\"", "").trim();
+		if (Strings.isEmpty(val)) return 0;
+		return Integer.parseInt(val);
+	}
+
+	private void setIfNotBlank(OptionFile of, int player, Stat stat, String val, boolean isChar) {
+		val = val.replace("\"", "").trim();
+		if (!Strings.isEmpty(val)) {
+			Stats.setValue(of, player, stat, isChar ? parseChar(val) : Integer.parseInt(val));
+		}
 	}
 
 	private int parseChar(String val) {
-		val = val.trim();
+		val = val.replace("\"", "").trim();
 		if (Strings.isEmpty(val)) return 0;
 		char c = val.charAt(0);
 		if (c >= 'A' && c <= 'C') {

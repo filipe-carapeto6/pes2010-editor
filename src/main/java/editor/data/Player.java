@@ -119,6 +119,13 @@ public class Player implements Serializable, Comparable<Player> {
 		return index;
 	}
 
+	public static int getId(OptionFile of, int index) {
+		if (isInvalidId(index)) {
+			return 0;
+		}
+		return Stats.getValue(of, index, Stats.PLAYER_ID);
+	}
+
 	/**
 	 * Registered player slot address.
 	 */
@@ -207,7 +214,7 @@ public class Player implements Serializable, Comparable<Player> {
 
 		System.arraycopy(temp, 0, of.getData(), adr, temp.length);
 
-		Stats.setValue(of, index, Stats.CALL_NAME, 0xCDCD);
+		Stats.setValue(of, index, Stats.PLAYER_ID, 0xCDCD);
 		Stats.setValue(of, index, Stats.NAME_EDITED, 1);
 		Stats.setValue(of, index, Stats.CALL_EDITED, 1);
 
@@ -293,7 +300,8 @@ public class Player implements Serializable, Comparable<Player> {
 			throw new NullArgumentException("ofDest");
 		}
 
-		Player pS, pD;
+		Player pS;
+		Player pD;
 		List<String> cmp;
 		for (int p = 1; p < FIRST_UNUSED; p++) {
 			pS = new Player(ofSource, p);
@@ -328,6 +336,20 @@ public class Player implements Serializable, Comparable<Player> {
 		}
 
 		return (count < Stats.ABILITY99.length / 5) ? null : dif;
+	}
+
+	/**
+	 * Returns true if the edited player slot is used (not empty/default data).
+	 * This checks if the slot contains non-default data.
+	 */
+	public boolean isEditedPlayerSlotUsed(int playerId, OptionFile of) {
+		if (playerId < FIRST_EDIT || playerId >= FIRST_EDIT + TOTAL_EDIT) return false;
+		byte[] data = of.getData();
+		int offset = (playerId - FIRST_EDIT) * SIZE + START_EDIT_ADR;
+		for (int i = 0; i < SIZE; i++) {
+			if (data[offset + i] != 0) return true;
+		}
+		return false;
 	}
 
 }

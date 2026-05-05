@@ -17,7 +17,31 @@ public final class Squads {
 	private Squads() {
 	}
 
-	public static final int NATION_COUNT = 60;
+	public static final String[] NATIONAL_TEAMS = {
+
+			// Europe (32)
+			"Austria","Belgium","Bosnia and Herzegovina","Bulgaria","Croatia",
+			"Czech Republic","Denmark","England","Finland","France","Germany",
+			"Greece","Hungary","Ireland","Israel","Italy","Netherlands",
+			"Northern Ireland","Norway","Poland","Portugal","Romania","Russia",
+			"Scotland","Serbia","Slovakia","Spain","Sweden","Switzerland",
+			"Turkey","Ukraine","Wales",
+
+			// Africa (8)
+			"Cameroon","Cote d'Ivoire","Egypt","Ghana",
+			"Nigeria","South Africa","Togo","Tunisia",
+
+			// Americas (12)
+			"Canada","Costa Rica","Mexico","USA",
+			"Argentina","Brazil","Chile","Colombia",
+			"Ecuador","Paraguay","Peru","Uruguay",
+
+			// Asia (8)
+			"Australia","China","Iran","Japan",
+			"North Korea","Saudi Arabia","South Korea","United Arab Emirates"
+	};
+
+	public static final int NATION_COUNT = NATIONAL_TEAMS.length; // = 60
 	public static final int CLASSIC_COUNT = 7;
 
 	public static final int NATION_NUM_ADR = OptionFile.blockAddress(5);
@@ -27,11 +51,37 @@ public final class Squads {
 	public static final int EXTRA_CLUBS_COUNT = 2;
 	private static final int TOTAL_SLOTS = FIRST_CLUB_SLOT + CLUB_COUNT * Formations.CLUB_TEAM_SIZE
 			+ EXTRA_CLUBS_COUNT * Formations.CLUB_TEAM_SIZE;
-	//	public static final int NATION_ADR = NATION_NUM_ADR + TOTAL_SLOTS + 1;
+	public static final int NATION_ADR = 666016 + 46;//665038 + 1070;
+
+	private static final int[] NATION_INDEX = {
+			// Austria, Belgium
+			0, 1,
+
+			// Bulgaria → Croatia (skip Bosnia)
+			3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+			13, 14, 15, 16, 17, 18, 19, 20,
+			21, 22, 23, 24, 25,
+
+			// Slovenia (skip Serbia)
+			27,
+
+			// Spain → China (aligned again)
+			28, 29, 30, 31, 32, 33, 34, 35,
+			36, 37, 38, 39, 40, 41, 42, 43,
+			44, 45, 46, 47, 48, 49, 50, 51,
+			52, 53,
+
+			// Asia (skip Iran)
+			55, 56, 57, 58, 59, 60, 61, 62,
+			63, 64, 65, 66, 67,
+
+			// Classics (aligned)
+			68, 69, 70, 71, 72, 73, 74, 75
+	};
+
 	public static final int CLUB_NUM_ADR = NATION_NUM_ADR + FIRST_CLUB_SLOT;
 	//	public static final int CLUB_ADR = NATION_ADR + FIRST_CLUB_SLOT * 2;
-	public static final int NATION_ADR = 665038;
-	public static final int CLUB_ADR = 669544;
+	public static final int CLUB_ADR = 669544 - 32;
 	public static final int END_ADR = NATION_ADR + TOTAL_SLOTS * 2;
 
 	public static final int EDIT_TEAM_COUNT
@@ -93,6 +143,8 @@ public final class Squads {
 
 	public static int getOffset(int team) {
 		if (team < EDIT_CLUB) {
+			log.debug("getOffset for national team {}: {}", team, NATION_ADR + team * Formations.NATION_TEAM_SIZE * 2);
+//			return NATION_ADR + NATION_INDEX[team] * Formations.NATION_TEAM_SIZE * 2;
 			return NATION_ADR + team * Formations.NATION_TEAM_SIZE * 2;
 		}
 		int result = CLUB_ADR + (team - FIRST_CLUB) * Formations.CLUB_TEAM_SIZE * 2;
@@ -382,15 +434,18 @@ public final class Squads {
 		log.debug("CLUB_ADR: {}", CLUB_ADR);
 		log.debug("FIRST_CLUB: {}", FIRST_CLUB);
 		log.debug("Clubs.TOTAL: {}", Clubs.TOTAL);
+		log.debug("END_ADR: {}", END_ADR);
+		log.debug("Formations.START_ADR: {}", Formations.START_ADR);
+		log.debug("Formations.SIZE: {}", Formations.SIZE);
 
 		if (null == of) {
 			throw new NullArgumentException("of");
 		}
 		log.debug("Try to fix formation for all {} teams", TOTAL);
 
-		for (int s = 0; s < TOTAL; s++) {
-			fixFormation(of, s, true);
-		}
+//		for (int s = 0; s < TOTAL; s++) {
+//			fixFormation(of, s, true);
+//		}
 		log.debug("Fixing formation for all teams succeeded");
 
 		Emblems.fixIndexesTable(of);

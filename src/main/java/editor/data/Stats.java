@@ -22,6 +22,7 @@ public final class Stats {
 	 */
 	public static final Stat ABILITY_EDITED = new Stat(40, 5, 1, "Ability Edited");
 
+	public static final Stat PLAYER_ID = new Stat(0, 0, 0xFFFF, "Player ID");
 	public static final Stat CALL_NAME = new Stat(1, 0, 0xFFFF, "Call Name");
 	public static final Stat AGE = new Stat(StatType.age15, 66, 1, 0x1F, "Age");
 	public static final Stat FOOT = new Stat(StatType.footId, 5, 0, 1, "Foot");// Stronger Foot
@@ -106,7 +107,7 @@ public final class Stats {
 	public static final Stat BALANCE = new Stat(9, 0, 0x7F, "Balance");
 	public static final Stat STAMINA = new Stat(10, 0, 0x7F, "Stamina");
 	public static final Stat SPEED = new Stat(11, 0, 0x7F, "Speed");
-	public static final Stat ACCELERATION = new Stat(12, 0, 0x7F, "Acceleration");
+	public static final Stat ACCELERATION = new Stat(12, 0, 0x7F, "Response");
 	public static final Stat RESPONSE = new Stat(13, 0, 0x7F, "Response");
 	public static final Stat AGILITY = new Stat(14, 0, 0x7F, "Agility");// Explosive power
 	public static final Stat DRIBBLE_ACC = new Stat(15, 0, 0x7F, "Dribble Accuracy");
