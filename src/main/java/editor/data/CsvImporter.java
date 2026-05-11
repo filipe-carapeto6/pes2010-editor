@@ -59,6 +59,8 @@ public class CsvImporter implements Serializable {
 					if (idCol >= 0 && values.length > idCol && !Strings.isEmpty(values[idCol])) {
 						try {
 							playerId = Integer.parseInt(values[idCol].replace("\"", "").trim());
+							log.debug("Parsed playerId: {}, FIRST_CLUB: {}, FIRST_CLUB+TOTAL: {}",
+									playerId, Player.FIRST_CLUB, Player.FIRST_CLUB + Player.TOTAL_CLUB_PLAYERS);
 						} catch (NumberFormatException e) {
 							log.warn("Invalid ID value '{}', skipping line: {}", values[idCol], line);
 							line = reader.readLine();
@@ -68,11 +70,20 @@ public class CsvImporter implements Serializable {
 
 					int playerIndex = -1;
 					if (playerId >= Player.FIRST_EDIT && playerId < Player.END_EDIT) {
+						// Edited player range — direct slot
 						playerIndex = playerId;
-					} else if (playerId >= 0) {
-						for (int i = 1; i < Player.TOTAL; i++) {
-							int id = Player.getId(of, i);
-							if (id == playerId) {
+					} else if (playerId >= 1 && playerId < Player.TOTAL) {
+						// Club/classic/national range — treat ID as direct slot index
+						playerIndex = playerId;
+					} else {
+						log.warn("ID {} out of valid range, skipping line: {}", playerId, line);
+						line = reader.readLine();
+						continue;
+					}
+
+					if (playerIndex < 0) {
+						for (int i = Player.FIRST_CLUB; i < Player.FIRST_CLUB + Player.TOTAL_CLUB_PLAYERS; i++) {
+							if (new Player(of, i).isEmpty()) {
 								playerIndex = i;
 								break;
 							}
@@ -80,16 +91,9 @@ public class CsvImporter implements Serializable {
 					}
 
 					if (playerIndex < 0) {
-						int nextFreeSlot = Player.FIRST_EDIT;
-						while (nextFreeSlot < Player.FIRST_EDIT + Player.TOTAL_EDIT && new Player(of, nextFreeSlot).isEditedPlayerSlotUsed(nextFreeSlot, of)) {
-							nextFreeSlot++;
-						}
-						if (nextFreeSlot >= Player.FIRST_EDIT + Player.TOTAL_EDIT) {
-							log.warn("No free player slots available, skipping line: {}", line);
-							line = reader.readLine();
-							continue;
-						}
-						playerIndex = nextFreeSlot;
+						log.warn("No matching player slot found for ID {}, skipping line: {}", playerId, line);
+						line = reader.readLine();
+						continue;
 					}
 
 					boolean ok = importPlayer(line, of, playerIndex, idCol, playerId);
@@ -120,9 +124,7 @@ public class CsvImporter implements Serializable {
 		int col = 0;
 		if (idCol >= 0) col++;
 		try {
-			if (player >= Player.FIRST_EDIT) {
-				Stats.setValue(of, player, Stats.PLAYER_ID, playerId);
-			}
+			Stats.setValue(of, player, Stats.PLAYER_ID, playerId);
 			// Name
 			String newName = values[col++].replace("\"", "").trim();
 			if (!Strings.isEmpty(newName)) {
@@ -150,7 +152,26 @@ public class CsvImporter implements Serializable {
 			}
 
 			// Registered Position
-			col++;
+			String regPosStr = values[col++].replace("\"", "").trim();
+			if (!Strings.isEmpty(regPosStr)) {
+				int regPosVal = -1;
+				try {
+					regPosVal = Integer.parseInt(regPosStr);
+				} catch (NumberFormatException e) {
+					String[] posNames = {"GK", "SW", "CB", "SB", "DMF", "WB", "CMF", "SMF", "AMF", "WF", "SS", "CF"};
+					for (int p = 0; p < posNames.length; p++) {
+						if (posNames[p].equalsIgnoreCase(regPosStr)) {
+							regPosVal = p;
+							break;
+						}
+					}
+				}
+				if (regPosVal >= 0) {
+					Stats.setValue(of, player, Stats.REG_POS, regPosVal);
+				} else {
+					log.warn("Unknown registered position '{}' for player {}", regPosStr, player);
+				}
+			}
 
 			// Other Stats
 			setIfNotBlank(of, player, Stats.INJURY, values[col++], true);
@@ -186,8 +207,29 @@ public class CsvImporter implements Serializable {
 				}
 			}
 
-			// Skip nationality and any remaining columns
-			// ...
+// Nationality
+			String natStr = values[col++].replace("\"", "").trim();
+			if (!Strings.isEmpty(natStr)) {
+				int natVal = -1;
+				// Try parsing as number first
+				try {
+					natVal = Integer.parseInt(natStr);
+				} catch (NumberFormatException e) {
+					// Look up by name in NATIONAL_TEAMS
+					for (int n = 0; n < Squads.NATIONAL_TEAMS.length; n++) {
+						if (Squads.NATIONAL_TEAMS[n].equalsIgnoreCase(natStr)) {
+							natVal = n;
+							break;
+						}
+					}
+				}
+				if (natVal >= 0) {
+					Stats.setValue(of, player, Stats.NATIONALITY, natVal);
+				} else {
+					log.warn("Unknown nationality '{}' for player {}", natStr, player);
+				}
+			}
+// Skip remaining columns (international number, classic number, club team, club number)Now Bull
 
 			return true;
 		} catch (NumberFormatException e) {
