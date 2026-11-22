@@ -41,6 +41,7 @@ public class GeneralAbilityPanel extends JPanel implements ActionListener, Chang
 
 	private/* final*/ JComboBox nationBox;
 	private/* final*/ JTextField nameField;
+	private/* final*/ JTextField shirtNameField;
 	private/* final*/ JTextField ageField;
 	private/* final*/ JTextField heightField;
 	private/* final*/ JTextField weightField;
@@ -65,6 +66,9 @@ public class GeneralAbilityPanel extends JPanel implements ActionListener, Chang
 
 		nameField = new JTextField(15);
 		nameField.setDocument(new JTextFieldLimit(Player.NAME_LEN));
+
+		shirtNameField = new JTextField(15);
+		shirtNameField.setDocument(new JTextFieldLimit(Player.SHIRT_NAME_LEN));
 
 		nationBox = new JComboBox/*<String>*/(Stats.NATION);
 
@@ -108,6 +112,14 @@ public class GeneralAbilityPanel extends JPanel implements ActionListener, Chang
 		add(lab, c);
 		c.gridx++;
 		add(nameField, c);
+
+		lab = new JLabel(Resources.getMessage("genAbility.shirtName"));
+		lab.setLabelFor(shirtNameField);
+		c.gridx = 0;
+		c.gridy++;
+		add(lab, c);
+		c.gridx++;
+		add(shirtNameField, c);
 
 		lab = new JLabel(Resources.getMessage("genAbility.nation"));
 		lab.setLabelFor(nationBox);
@@ -350,6 +362,10 @@ public class GeneralAbilityPanel extends JPanel implements ActionListener, Chang
 		return nameField;
 	}
 
+	public JTextField getShirtNameField() {
+		return shirtNameField;
+	}
+
 	public JTextField getHairField() {
 		return hairField;
 	}
@@ -360,6 +376,7 @@ public class GeneralAbilityPanel extends JPanel implements ActionListener, Chang
 
 	public void load(int player) {
 		nameField.setText(Player.getName(of, player));
+		shirtNameField.setText(new Player(of, player).getShirtName());
 		nationBox.setSelectedIndex(Stats.getValue(of, player, Stats.NATIONALITY));
 		ageField.setText(Stats.getString(of, player, Stats.AGE));
 		heightField.setText(Stats.getString(of, player, Stats.HEIGHT));

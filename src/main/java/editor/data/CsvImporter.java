@@ -41,12 +41,16 @@ public class CsvImporter implements Serializable {
 			// Parse header
 			String[] header = null;
 			int idCol = -1;
+			boolean hasShirtNameCol = false;
 			if (line != null && isHeader(line)) {
 				header = line.split(Pattern.quote(String.valueOf(separator)));
 				for (int i = 0; i < header.length; i++) {
-					if (header[i].replace("\"", "").trim().equalsIgnoreCase("ID")) {
+					String colName = header[i].replace("\"", "").trim();
+					if (colName.equalsIgnoreCase("ID")) {
 						idCol = i;
-						break;
+					}
+					if (colName.equalsIgnoreCase("SHIRT NAME") || colName.equalsIgnoreCase("SHIRT_NAME")) {
+						hasShirtNameCol = true;
 					}
 				}
 				line = reader.readLine();
@@ -56,7 +60,8 @@ public class CsvImporter implements Serializable {
 				if (line.trim().length() > 0) {
 					String[] values = line.split(Pattern.quote(String.valueOf(separator)));
 					int playerId = -1;
-					if (idCol >= 0 && values.length > idCol && !Strings.isEmpty(values[idCol])) {
+					boolean hasExplicitId = idCol >= 0 && values.length > idCol && !Strings.isEmpty(values[idCol]);
+					if (hasExplicitId) {
 						try {
 							playerId = Integer.parseInt(values[idCol].replace("\"", "").trim());
 							log.debug("Parsed playerId: {}, FIRST_CLUB: {}, FIRST_CLUB+TOTAL: {}",
@@ -69,13 +74,13 @@ public class CsvImporter implements Serializable {
 					}
 
 					int playerIndex = -1;
-					if (playerId >= Player.FIRST_EDIT && playerId < Player.END_EDIT) {
+					if (hasExplicitId && playerId >= Player.FIRST_EDIT && playerId < Player.END_EDIT) {
 						// Edited player range — direct slot
 						playerIndex = playerId;
-					} else if (playerId >= 1 && playerId < Player.TOTAL) {
+					} else if (hasExplicitId && playerId >= 1 && playerId < Player.TOTAL) {
 						// Club/classic/national range — treat ID as direct slot index
 						playerIndex = playerId;
-					} else {
+					} else if (hasExplicitId) {
 						log.warn("ID {} out of valid range, skipping line: {}", playerId, line);
 						line = reader.readLine();
 						continue;
@@ -96,7 +101,7 @@ public class CsvImporter implements Serializable {
 						continue;
 					}
 
-					boolean ok = importPlayer(line, of, playerIndex, idCol, playerId);
+					boolean ok = importPlayer(line, of, playerIndex, idCol, playerId, hasShirtNameCol);
 					if (!ok) {
 						log.warn("Failed to parse line for player #{}: {}", playerIndex, line);
 					}
@@ -119,16 +124,27 @@ public class CsvImporter implements Serializable {
 		return upper.contains("NAME") || upper.contains("AGE") || upper.contains("HEIGHT");
 	}
 
-	private boolean importPlayer(String line, OptionFile of, int player, int idCol, int playerId) {
+	private boolean importPlayer(String line, OptionFile of, int player, int idCol, int playerId, boolean hasShirtNameCol) {
 		String[] values = line.split(Pattern.quote(String.valueOf(separator)));
 		int col = 0;
 		if (idCol >= 0) col++;
 		try {
-			Stats.setValue(of, player, Stats.PLAYER_ID, playerId);
+			if (playerId >= 0) {
+				Stats.setValue(of, player, Stats.PLAYER_ID, playerId);
+			}
 			// Name
+			Player playerObj = new Player(of, player);
 			String newName = values[col++].replace("\"", "").trim();
 			if (!Strings.isEmpty(newName)) {
-				new Player(of, player).setName(newName);
+				playerObj.setName(newName);
+			}
+
+			// Shirt Name
+			if (hasShirtNameCol || (col < values.length && !isNumeric(values[col]))) {
+				String newShirtName = values[col++].replace("\"", "").trim();
+				if (!Strings.isEmpty(newShirtName)) {
+					playerObj.setShirtName(newShirtName);
+				}
 			}
 			// Age
 			Stats.setValue(of, player, Stats.AGE, parseInt(values[col++]) - 15);
@@ -154,18 +170,7 @@ public class CsvImporter implements Serializable {
 			// Registered Position
 			String regPosStr = values[col++].replace("\"", "").trim();
 			if (!Strings.isEmpty(regPosStr)) {
-				int regPosVal = -1;
-				try {
-					regPosVal = Integer.parseInt(regPosStr);
-				} catch (NumberFormatException e) {
-					String[] posNames = {"GK", "SW", "CB", "SB", "DMF", "WB", "CMF", "SMF", "AMF", "WF", "SS", "CF"};
-					for (int p = 0; p < posNames.length; p++) {
-						if (posNames[p].equalsIgnoreCase(regPosStr)) {
-							regPosVal = p;
-							break;
-						}
-					}
-				}
+				int regPosVal = parseRegisteredPosition(regPosStr);
 				if (regPosVal >= 0) {
 					Stats.setValue(of, player, Stats.REG_POS, regPosVal);
 				} else {
@@ -263,5 +268,38 @@ public class CsvImporter implements Serializable {
 			return c - 'A';
 		}
 		return 0;
+	}
+
+	private static boolean isNumeric(String val) {
+		val = val.replace("\"", "").trim();
+		if (Strings.isEmpty(val)) {
+			return true;
+		}
+		try {
+			Integer.parseInt(val);
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+
+	private int parseRegisteredPosition(String regPosStr) {
+		String normalized = regPosStr.replace("\"", "").trim().replace("*", "");
+		if (Strings.isEmpty(normalized)) {
+			return -1;
+		}
+
+		try {
+			return Integer.parseInt(normalized);
+		} catch (NumberFormatException ignored) {
+			String[] posNames = {"GK", "SW", "CB", "SB", "DMF", "WB", "CMF", "SMF", "AMF", "WF", "SS", "CF"};
+			for (int role = 0; role < posNames.length; role++) {
+				if (posNames[role].equalsIgnoreCase(normalized)) {
+					// CSV position labels map to role indices; REG_POS has a shifted encoding.
+					return Stats.roleToRegPos(role);
+				}
+			}
+			return -1;
+		}
 	}
 }

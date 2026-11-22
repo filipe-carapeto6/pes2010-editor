@@ -155,7 +155,11 @@ public class PlayerDialog extends JDialog implements ActionListener {
 
 	private void updateStats() {
 		String newName = generalPan.getNameField().getText();
-		new Player(of, index).setName(newName);
+		Player player = new Player(of, index);
+		player.setName(newName);
+
+		String newShirtName = generalPan.getShirtNameField().getText();
+		player.setShirtName(newShirtName);
 
 		for (int i = 0; i < Stats.ROLES.length; i++) {
 			Stats.setValue(of, index, Stats.ROLES[i], Bits.toByte(positionPan.getRoleCheck(i).isSelected()));

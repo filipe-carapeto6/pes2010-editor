@@ -42,22 +42,28 @@ public class CsvMaker implements Serializable {
 				out.writeBytes(Strings.NEW_LINE);
 			}
 
-			String[] teams = Clubs.getNames(of);
-			for (int player = 1; player < Player.FIRST_UNUSED; player++) {
+		String[] teams = Clubs.getNames(of);
+		for (int player = 1; player < Player.FIRST_UNUSED; player++) {
+			if (!new Player(of, player).isEmpty()) {
 				writePlayer(of, out, player, teams);
 			}
+		}
 
-			/*if (extra) {
-				for (int player = Player.FIRST_UNUSED; player < Player.TOTAL; player++) {
+		/*if (extra) {
+			for (int player = Player.FIRST_UNUSED; player < Player.TOTAL; player++) {
+				if (!new Player(of, player).isEmpty()) {
 					writePlayer(of, out, player, teams);
 				}
-			}*/
-
-			if (create) {
-				for (int player = 0; player < Player.TOTAL_EDIT; player++) {
-					writePlayer(of, out, player + Player.FIRST_EDIT, teams);
-				}
 			}
+		}*/
+
+		// Always export non-empty edit-range players (e.g. national team edited players)
+		for (int player = 0; player < Player.TOTAL_EDIT; player++) {
+			int playerId = player + Player.FIRST_EDIT;
+			if (create || !new Player(of, playerId).isEmpty()) {
+				writePlayer(of, out, playerId, teams);
+			}
+		}
 
 			log.debug("Making of CSV file '{}' succeeded", dest);
 			return true;
@@ -83,7 +89,11 @@ public class CsvMaker implements Serializable {
 	}
 
 	private void writePlayer(OptionFile of, DataOutput out, int player, String[] clubNames) throws IOException {
+		out.writeBytes(Integer.toString(player));
+		out.write(separator);
 		writeName(of, out, player);
+		out.write(separator);
+		writeShirtName(of, out, player);
 
 		out.write(separator);
 		out.writeBytes(Stats.getString(of, player, Stats.AGE));
@@ -174,6 +184,15 @@ public class CsvMaker implements Serializable {
 		String name = Player.getName(of, player);
 		name = name.replace(separator, ' ');
 		out.write(name.getBytes(Strings.UTF8));
+	}
+
+	private void writeShirtName(OptionFile of, DataOutput out, int player) throws IOException {
+		String shirtName = new Player(of, player).getShirtName();
+		if (shirtName == null) {
+			shirtName = Strings.EMPTY;
+		}
+		shirtName = shirtName.replace(separator, ' ');
+		out.write(shirtName.getBytes(Strings.UTF8));
 	}
 
 	private static void writeInternationalStatus(OptionFile of, DataOutput out, int player) throws IOException {
